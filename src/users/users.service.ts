@@ -1,18 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { CreateUserDto, RegisterUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { User as UserM, UserDocument } from './schemas/user.schema';
 import mongoose from 'mongoose';
 import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import aqp from 'api-query-params';
+import { IUser } from './users.interface';
+import { User } from "src/decorator/customize";
+import { Role, RoleDocument } from 'src/roles/schemas/role.schema';
+
 
 @Injectable()
 export class UsersService {
 
   constructor(
-    @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>) { }
+    @InjectModel(UserM.name) private userModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Role.name) private roleModel: SoftDeleteModel<RoleDocument>) { }
 
   getHashPassword = (password: string) => {
     const salt = genSaltSync(10);
@@ -20,15 +25,60 @@ export class UsersService {
     return hash;
   }
 
-  async create(createUserDto: CreateUserDto) {
-    const hashPassword = this.getHashPassword(createUserDto.password);
+  async create(createUserDto: CreateUserDto, @User() user: IUser){
+    const {userName, password, email, phoneNumber, role, store, } = createUserDto;
 
-    let user = await this.userModel.create({
-      phoneNumber: createUserDto.phoneNumber,
-      password: hashPassword,
-      name: createUserDto.name,
+    //check exist userName, phonNumber, email
+    const isExistUserName = await this.userModel.findOne({userName})
+    if(isExistUserName){
+      throw new BadRequestException(`userName: ${userName} already exists`)
+    }
+    const isExistEmail = await this.userModel.findOne({email})
+    if(isExistEmail){
+      throw new BadRequestException(`email: ${email} already exists`)
+    }
+    const isExistPhoneNumber = await this.userModel.findOne({phoneNumber})
+    if(isExistPhoneNumber){
+      throw new BadRequestException(`phoneNumber: ${phoneNumber} already exists`)
+    }
+  
+    const hashPassword = this.getHashPassword(createUserDto.password)
+    let newUser = await this.userModel.create({
+      userName, email, password, phoneNumber, role, store,
+      createdBy: {
+        _id: user._id,
+        userName: user.userName,
+      }
     })
-    return user;
+    return newUser; 
+  }
+
+  async register(user: RegisterUserDto){
+    const { userName, email, phoneNumber, password } = user;
+
+    //check exist userName, phonNumber, email
+    const isExistUserName = await this.userModel.findOne({userName})
+    if(isExistUserName){
+      throw new BadRequestException(`userName: ${userName} already exists`)
+    }
+    const isExistEmail = await this.userModel.findOne({email})
+    if(isExistEmail){
+      throw new BadRequestException(`email: ${email} already exists`)
+    }
+    const isExistPhoneNumber = await this.userModel.findOne({phoneNumber})
+    if(isExistPhoneNumber){
+      throw new BadRequestException(`phoneNumber: ${phoneNumber} already exists`)
+    }
+    //fetch user role
+    const userRole = await this.roleModel.findOne({name: "USER_ROLE"})
+
+    const hashPassword = this.getHashPassword(password)
+    let newRegister = await this.userModel.create({
+      userName, email, phoneNumber,
+      password: hashPassword, 
+      role: userRole?._id
+    })
+    return newRegister; 
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {
@@ -66,10 +116,10 @@ export class UsersService {
     })
   }
 
-  // in order to login by phone number
+  // in order to login by userName
   async findOneByUsername(username: string) {
     return await this.userModel.findOne(
-      {phoneNumber: username})
+      {userName: username})
     }
 
   //check password for login
@@ -77,15 +127,48 @@ export class UsersService {
     return compareSync(password, hash);
   }
 
-  async update(updateUserDto: UpdateUserDto) {
-    return await this.userModel.updateOne({ _id: updateUserDto._id }, { ...updateUserDto })
+  async update(updateUserDto: UpdateUserDto, user: IUser) {
+    const updated = await this.userModel.updateOne(
+      {_id: updateUserDto._id},
+      {...updateUserDto,
+      updateBy:{
+        _id: user._id,
+        userName: user.userName,
+      }});
+      return updated
   }
 
-  remove(id: string) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      return `not found user`;
-    return this.userModel.softDelete({
-      _id: id
+  async remove(id: string, @User() user: IUser) {
+    if(!mongoose.Types.ObjectId.isValid(id)){
+      return 'not found user'
+     }
+     const foundUser = await this.userModel.findById(id)
+     if(foundUser && foundUser.userName === "admin"){
+      throw new BadRequestException("cant not delete this user name")
+     }
+        await this.userModel.updateOne(
+          {_id: id},
+          {
+            deletedBy:{
+              _id: user._id,
+              userName: user.userName,
+            }
+          });
+        return this.userModel.softDelete({
+          _id: id
+        }) 
+       }
+  updateUserToken = async (refreshToken: string, _id: string) =>{
+        return await this.userModel.updateOne(
+          {_id},
+          { refreshToken }
+          )
+        }
+
+  findUserByToken = async (refreshToken: string) =>{
+    return await this.userModel.findOne({ refreshToken })
+    .populate({
+      path: "role", select: {name: 1}
     })
   }
 }

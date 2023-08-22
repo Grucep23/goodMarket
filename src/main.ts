@@ -6,6 +6,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { join } from 'path';
 import { TransformInterceptor } from './core/transform.interceptor';
 import { ValidationPipe, VersioningType  } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder  } from '@nestjs/swagger';
 
 
 async function bootstrap() {
@@ -37,6 +38,7 @@ async function bootstrap() {
        credentials: true
      }
    );
+   
 
    //config verioning
   app.setGlobalPrefix('api');
@@ -45,7 +47,32 @@ async function bootstrap() {
     defaultVersion: ['1'],//version 1
   });
  
-   app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true
+  }));
+
+   //config swagger
+  const config = new DocumentBuilder()
+  .setTitle('APIs Document')
+  .setDescription('All module APIs')
+  .setVersion('1.0')
+  .addBearerAuth(
+    {
+      type: 'http',
+      scheme: 'Bearer',
+      bearerFormat: 'JWT',
+      in: 'header',
+    },
+    'token',
+  )
+  .addSecurityRequirements('token')
+  .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document, {
+  swaggerOptions: {
+    persistAuthorization: true,
+  }
+  });
  
    await app.listen(configService.get<string>('PORT'));
  }

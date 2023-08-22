@@ -5,10 +5,10 @@ import {  IsNotEmpty } from 'class-validator';
 export class CreateStoreDto {
     
   @IsNotEmpty()
-  name: string;
+  storeName: string;
   phoneNumber: string;;
   description: string;
   address: string;
- 
+  logo: string
 }
   

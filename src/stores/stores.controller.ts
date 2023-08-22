@@ -2,20 +2,24 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
-import { ResponseMessage, User } from 'src/decorator/customize';
-import { Store } from './schemas/store.schema';
+import { Public, ResponseMessage, User } from 'src/decorator/customize';
 import { IUser } from 'src/users/users.interface';
+import { ApiTags }  from '@nestjs/swagger';
 
+
+@ApiTags('stores')
 @Controller('stores')
 export class StoresController {
   constructor(private readonly storesService: StoresService) {}
 
   @Post()
+  @Public()
   @ResponseMessage("Create a new store")
   create(@Body() createStoreDto: CreateStoreDto, @User() user: IUser) {
     return this.storesService.create(createStoreDto, user);
     }
 
+  @Public()
   @Get()
   @ResponseMessage("Fetch stores with paginate")
   findAll(
@@ -26,6 +30,7 @@ export class StoresController {
     return this.storesService.findAll(+currentPage, +limit, qs);
   }
 
+  @Public()
   @Get(':id')
   @ResponseMessage("Get a store by id")
   findOne(@Param('id') id: string) {

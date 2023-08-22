@@ -8,10 +8,7 @@ export type StoreDocument = HydratedDocument<Store>;
 export class Store {
 
     @Prop()
-    name: string;
-
-    @Prop()
-    phoneNumber: string;
+    nameStore: string;
   
     @Prop()
     address: string;
@@ -25,19 +22,19 @@ export class Store {
     @Prop({type: Object})
     createdBy: {
       _id: mongoose.Schema.Types.ObjectId,
-      phoneNumber: string,
+      userName: string,
     };
   
     @Prop({type: Object})
     updatedBy: {
       _id: mongoose.Schema.Types.ObjectId,
-      phoneNumber: string,
+      userName: string,
     };
   
     @Prop({type: Object})
     deletedBy: {
       _id: mongoose.Schema.Types.ObjectId,
-      phoneNumber: string,
+      userName: string,
     };
   
     @Prop()

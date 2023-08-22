@@ -14,12 +14,11 @@ export class StoresService {
   constructor(
     @InjectModel(Store.name) private storeModel: SoftDeleteModel<StoreDocument>) { }
 
-create(createStoreDto: CreateStoreDto, user: IUser) {
-  return  this.storeModel.create({
-  ...createStoreDto,
+async create(createStoreDto: CreateStoreDto, user: IUser) {
+  return await this.storeModel.create({...createStoreDto,
   createdBy: {
   _id: user._id,
-  phoneNumber: user.phoneNumber
+  userName: user.userName
   }
   })
 }
@@ -65,7 +64,7 @@ async update(id: string, updateStoreDto: UpdateStoreDto, user: IUser) {
       ...updateStoreDto,
       updatedBy:{
         _id: user._id,
-        phoneNumber: user.phoneNumber
+        userName: user.userName
       }
     }
   )
@@ -77,7 +76,7 @@ await this.storeModel.updateOne(
   {
     deletedBy:{
       _id: user._id,
-      phoneNumber: user.phoneNumber
+      userName: user.userName
     }
   })
 return this.storeModel.softDelete({

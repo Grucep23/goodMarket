@@ -2,18 +2,26 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ResponseMessage } from 'src/decorator/customize';
+import { Public, ResponseMessage, User } from 'src/decorator/customize';
+import { IUser } from './users.interface';
+import { ApiTags }  from '@nestjs/swagger';
 
+
+@ApiTags('users')
 @Controller('users') 
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @ResponseMessage("Create a new user")
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto, @User() user: IUser) {
+    let newUser = await this.usersService.create(createUserDto, user);
+    return {
+      _id: newUser?._id,
+      createdAt: newUser?.createdAt,
+    }
   }
-
+  @Public()
   @Get()
   @ResponseMessage("Fetch users with paginate")
   findAll(
@@ -24,6 +32,7 @@ export class UsersController {
     return this.usersService.findAll(+currentPage, +limit, qs);
   }
 
+  @Public()
   @Get(':id')
   @ResponseMessage("Get a user with paginate")
   findOne(
@@ -33,13 +42,14 @@ export class UsersController {
 
   @Patch()
   @ResponseMessage("Update a user by id")
-  update(@Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(updateUserDto);
-  }
+  async update(@Body() updateUserDto: UpdateUserDto, @User() user: IUser) {
+    let updatedUser = await this.usersService.update(updateUserDto, user);
+    return updatedUser
+}
 
   @Delete(':id')
   @ResponseMessage("Delete a user")
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @User() user: IUser) {
+    return this.usersService.remove(id, user);
   }
 }
