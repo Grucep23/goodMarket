@@ -6,9 +6,18 @@ export class CreateStoreDto {
     
   @IsNotEmpty()
   storeName: string;
-  phoneNumber: string;;
+  @IsNotEmpty()
+
+  @IsNotEmpty()
+  phoneNumber: string;
+  
+  @IsNotEmpty()
   description: string;
+
+  @IsNotEmpty()
   address: string;
+
+  @IsNotEmpty()
   logo: string
 }
   

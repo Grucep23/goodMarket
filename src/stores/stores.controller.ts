@@ -13,9 +13,9 @@ export class StoresController {
   constructor(private readonly storesService: StoresService) {}
 
   @Post()
-  @Public()
   @ResponseMessage("Create a new store")
   create(@Body() createStoreDto: CreateStoreDto, @User() user: IUser) {
+    console.log(createStoreDto)
     return this.storesService.create(createStoreDto, user);
     }
 
